@@ -1,0 +1,59 @@
+---
+# this will be installed via remote package which will set up a repo for updates
+
+# this is just too much logic and programming and probably not an ideal use case
+
+# you really want to determine what to do based on what is passed, not
+# necessarily what the OS is...which seems backwards
+
+- name: install| set some variables based on what was passed
+  set_fact:
+    REPO_EXT: "{{ (repo.repo_url | splitext)[1] }}"
+    REPO_SCHEME: "{{ repo.repo_url | urlsplit('scheme') }}"
+
+# - name: debugging
+#   debug:
+#     msg: "{{ repo.repo_url }} = {{ REPO_SCHEME }} - {{ REPO_EXT }}"
+
+# if repo.repo_url starts with http, ensure it can be reached
+- name: install| block if scheme includes http
+  block:
+    - name: install|http| try to access URL
+      uri:
+        url: "{{ repo.repo_url }}"
+      register: http_response
+      failed_when: false
+    - name: install|http|exists| url is accessible
+      block:
+        # if repo.repo_url ends in .rpm install it with yum
+        - name: install|http|exists|rpm
+          block:
+            - name: install|http|exists|rpm|repo
+              yum:
+                name: "{{ repo.repo_url }}"
+                state: present
+            # if repo.repo_url ends in .rpm and repo.repo_key_url exists, import it
+            - name: install|http|exists|rpm|repo_key
+              rpm_key:
+                key: "{{ repo.repo_key_url }}"
+                state: present
+              when: repo.repo_key_url is defined
+          when: ansible_os_family == "RedHat" and
+                REPO_EXT == ".rpm"
+        - name: install|http|exists|deb
+          block:
+            - name: install|http|exists|deb|repo
+              apt_repository:
+                repo: "deb {{ repo.repo_url }} {{ repo.repo_codename }} {{ repo.repo_section }}"
+                state: present
+            - name: install|http|exists|deb|repo_key
+              apt_key:
+                url: "{{ repo.repo_key_url }}"
+                state: present
+              when: repo.repo_key_url is defined
+          when: ansible_os_family == "Debian" and
+                REPO_EXT != ".rpm"
+      when: http_response.status == 200
+  when: '"http" in REPO_SCHEME'
+
+# if repo.repo starts with ppa, use apt_something

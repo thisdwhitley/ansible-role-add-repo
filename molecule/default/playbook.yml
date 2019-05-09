@@ -1,0 +1,14 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: ansible-role-add-repo
+      repos:
+        - repo_url: "https://download1.rpmfusion.org/free/{{ (ansible_distribution == 'Fedora') | ternary('fedora','el') }}/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+        - repo_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+          repo_key_url: "https://archive.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+        - repo_url: "https://debian.opennms.org"
+          repo_codename: "stable"
+          repo_section: "main"
+          repo_key_url: "https://debian.opennms.org/OPENNMS-GPG-KEY"
+        - repo_url: "ppa:nginx/stable"
