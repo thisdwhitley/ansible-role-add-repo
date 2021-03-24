@@ -28,16 +28,16 @@
         # if repo.repo_url ends in .rpm install it with yum
         - name: install|http|exists|rpm
           block:
-            - name: install|http|exists|rpm|repo
-              yum:
-                name: "{{ repo.repo_url }}"
-                state: present
             # if repo.repo_url ends in .rpm and repo.repo_key_url exists, import it
             - name: install|http|exists|rpm|repo_key
               rpm_key:
                 key: "{{ repo.repo_key_url }}"
                 state: present
               when: repo.repo_key_url is defined
+            - name: install|http|exists|rpm|repo
+              yum:
+                name: "{{ repo.repo_url }}"
+                state: present
           when: ansible_os_family == "RedHat" and
                 REPO_EXT == ".rpm"
         - name: install|http|exists|deb
